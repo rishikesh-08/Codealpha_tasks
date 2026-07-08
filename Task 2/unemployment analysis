@@ -1,0 +1,189 @@
+import os
+import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+from matplotlib.lines import Line2D
+
+INPUT_CSV =  r"C:\Users\aryac\OneDrive\Desktop\Codealpha_tasks\Task2\Unemployment in India.csv"
+CHART_DIR = "charts"
+os.makedirs(CHART_DIR, exist_ok=True)
+
+COVID_LOCKDOWN_DATE = pd.Timestamp("2020-03-25")
+
+plt.rcParams.update({
+    "figure.facecolor": "white",
+    "axes.facecolor": "white",
+    "font.size": 11,
+    "axes.edgecolor": "#444",
+    "axes.grid": True,
+    "grid.alpha": 0.25,
+})
+
+df = pd.read_csv(INPUT_CSV)
+df.columns = [c.strip() for c in df.columns]
+
+for col in ["Region", "Date", "Frequency", "Area"]:
+    df[col] = df[col].astype(str).str.strip()
+
+df = df.dropna(how="all")
+df = df.dropna(subset=["Estimated Unemployment Rate (%)"])
+df["Date"] = pd.to_datetime(df["Date"], format="%d-%m-%Y")
+
+df = df.rename(columns={
+    "Estimated Unemployment Rate (%)": "Unemployment_Rate",
+    "Estimated Employed": "Employed",
+    "Estimated Labour Participation Rate (%)": "Labour_Participation_Rate",
+})
+
+df["Year"] = df["Date"].dt.year
+df["Month"] = df["Date"].dt.month
+df["Month_Name"] = df["Date"].dt.strftime("%b")
+
+df["Period"] = df["Date"].apply(
+    lambda d: "Post-COVID (Apr-Jun 2020)" if d >= pd.Timestamp("2020-04-01")
+    else "Pre-COVID (May19-Mar20)"
+)
+
+df = df.sort_values("Date").reset_index(drop=True)
+
+print(f"Cleaned dataset: {df.shape[0]} rows, {df['Region'].nunique()} regions, "
+      f"{df['Date'].min().date()} to {df['Date'].max().date()}")
+
+df.to_csv("clean_data.csv", index=False)
+
+national = df.groupby("Date")["Unemployment_Rate"].mean().reset_index()
+
+fig, ax = plt.subplots(figsize=(10, 5))
+ax.plot(national["Date"], national["Unemployment_Rate"],
+        color="#1f6f5c", linewidth=2.5, marker="o", markersize=4)
+ax.axvline(COVID_LOCKDOWN_DATE, color="#c0392b", linestyle="--", linewidth=1.5)
+ax.text(COVID_LOCKDOWN_DATE, ax.get_ylim()[1] * 0.95,
+        " Nationwide lockdown\n (25 Mar 2020)", color="#c0392b", fontsize=9, va="top")
+ax.set_title("India: Average Estimated Unemployment Rate Over Time (May 2019 – Jun 2020)",
+             fontsize=13, weight="bold")
+ax.set_ylabel("Unemployment Rate (%)")
+ax.xaxis.set_major_locator(mdates.MonthLocator())
+ax.xaxis.set_major_formatter(mdates.DateFormatter("%b-%y"))
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.savefig(f"{CHART_DIR}/1_national_trend.png", dpi=150)
+plt.close()
+
+rural_urban = df.groupby(["Date", "Area"])["Unemployment_Rate"].mean().reset_index()
+
+fig, ax = plt.subplots(figsize=(10, 5))
+for area, color in [("Rural", "#2980b9"), ("Urban", "#e67e22")]:
+    sub = rural_urban[rural_urban["Area"] == area]
+    ax.plot(sub["Date"], sub["Unemployment_Rate"], label=area,
+            linewidth=2.5, marker="o", markersize=4, color=color)
+ax.axvline(COVID_LOCKDOWN_DATE, color="#c0392b", linestyle="--", linewidth=1.5)
+ax.set_title("Unemployment Rate: Rural vs Urban India", fontsize=13, weight="bold")
+ax.set_ylabel("Unemployment Rate (%)")
+ax.legend()
+ax.xaxis.set_major_locator(mdates.MonthLocator())
+ax.xaxis.set_major_formatter(mdates.DateFormatter("%b-%y"))
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.savefig(f"{CHART_DIR}/2_rural_vs_urban.png", dpi=150)
+plt.close()
+
+region_period = df.groupby(["Region", "Period"])["Unemployment_Rate"].mean().unstack()
+region_period["increase"] = (
+    region_period["Post-COVID (Apr-Jun 2020)"] - region_period["Pre-COVID (May19-Mar20)"]
+)
+region_period = region_period.sort_values("increase", ascending=False)
+region_period.to_csv("region_period.csv")
+
+top15 = region_period.head(15)
+y = range(len(top15))
+
+fig, ax = plt.subplots(figsize=(10, 7))
+ax.barh(y, top15["Pre-COVID (May19-Mar20)"], color="#95a5a6",
+        label="Pre-COVID avg", height=0.4, align="edge")
+ax.barh([i + 0.4 for i in y], top15["Post-COVID (Apr-Jun 2020)"], color="#c0392b",
+        label="Post-COVID avg (Apr-Jun 2020)", height=0.4, align="edge")
+ax.set_yticks([i + 0.4 for i in y])
+ax.set_yticklabels(top15.index)
+ax.invert_yaxis()
+ax.set_xlabel("Unemployment Rate (%)")
+ax.set_title("Top 15 States by COVID-19 Unemployment Shock\n(Pre vs Post Lockdown Average)",
+             fontsize=13, weight="bold")
+ax.legend()
+plt.tight_layout()
+plt.savefig(f"{CHART_DIR}/3_state_covid_impact.png", dpi=150)
+plt.close()
+
+month_order = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+seasonal = (
+    df[df["Date"] < "2020-04-01"]
+    .groupby("Month_Name")["Unemployment_Rate"]
+    .mean()
+)
+seasonal = seasonal.reindex([m for m in month_order if m in seasonal.index])
+
+fig, ax = plt.subplots(figsize=(9, 5))
+ax.bar(seasonal.index, seasonal.values, color="#16a085")
+ax.set_title("Seasonal Pattern: Avg Unemployment Rate by Month\n(Pre-COVID period only)",
+             fontsize=12, weight="bold")
+ax.set_ylabel("Unemployment Rate (%)")
+plt.tight_layout()
+plt.savefig(f"{CHART_DIR}/4_seasonality.png", dpi=150)
+plt.close()
+
+groups = {
+    "Rural\nPre": df[(df["Period"] == "Pre-COVID (May19-Mar20)") & (df["Area"] == "Rural")]["Unemployment_Rate"],
+    "Rural\nPost": df[(df["Period"] == "Post-COVID (Apr-Jun 2020)") & (df["Area"] == "Rural")]["Unemployment_Rate"],
+    "Urban\nPre": df[(df["Period"] == "Pre-COVID (May19-Mar20)") & (df["Area"] == "Urban")]["Unemployment_Rate"],
+    "Urban\nPost": df[(df["Period"] == "Post-COVID (Apr-Jun 2020)") & (df["Area"] == "Urban")]["Unemployment_Rate"],
+}
+
+fig, ax = plt.subplots(figsize=(8, 5))
+bp = ax.boxplot(groups.values(), tick_labels=groups.keys(), patch_artist=True)
+for patch, color in zip(bp["boxes"], ["#2980b9", "#c0392b", "#e67e22", "#8e44ad"]):
+    patch.set_facecolor(color)
+    patch.set_alpha(0.6)
+ax.set_ylabel("Unemployment Rate (%)")
+ax.set_title("Distribution Shift: Pre vs Post COVID by Area", fontsize=12, weight="bold")
+plt.tight_layout()
+plt.savefig(f"{CHART_DIR}/5_distribution_shift.png", dpi=150)
+plt.close()
+
+period_colors = df["Period"].map({
+    "Pre-COVID (May19-Mar20)": "#2980b9",
+    "Post-COVID (Apr-Jun 2020)": "#c0392b",
+})
+
+fig, ax = plt.subplots(figsize=(8, 6))
+ax.scatter(df["Labour_Participation_Rate"], df["Unemployment_Rate"],
+           c=period_colors, alpha=0.6, s=25)
+ax.set_xlabel("Estimated Labour Participation Rate (%)")
+ax.set_ylabel("Unemployment Rate (%)")
+ax.set_title("Labour Participation vs Unemployment Rate", fontsize=12, weight="bold")
+legend_handles = [
+    Line2D([0], [0], marker="o", color="w", markerfacecolor="#2980b9", markersize=8, label="Pre-COVID"),
+    Line2D([0], [0], marker="o", color="w", markerfacecolor="#c0392b", markersize=8, label="Post-COVID"),
+]
+ax.legend(handles=legend_handles)
+plt.tight_layout()
+plt.savefig(f"{CHART_DIR}/6_participation_vs_unemployment.png", dpi=150)
+plt.close()
+
+pre_avg = national[national["Date"] < "2020-04-01"]["Unemployment_Rate"].mean()
+post_avg = national[national["Date"] >= "2020-04-01"]["Unemployment_Rate"].mean()
+peak_row = national.loc[national["Unemployment_Rate"].idxmax()]
+corr = df["Labour_Participation_Rate"].corr(df["Unemployment_Rate"])
+
+print(f"\nNational avg unemployment — Pre-COVID:  {pre_avg:.2f}%")
+print(f"National avg unemployment — Post-COVID: {post_avg:.2f}%")
+print(f"Peak month: {peak_row['Date'].date()} at {peak_row['Unemployment_Rate']:.2f}%")
+print(f"Correlation (Labour Participation vs Unemployment Rate): {corr:.4f}")
+
+print("\nTop 5 hardest-hit states/UTs (by increase, pre->post):")
+print(region_period.head(5)[["Pre-COVID (May19-Mar20)", "Post-COVID (Apr-Jun 2020)", "increase"]])
+
+print("\nBottom 5 least-affected/improved states/UTs:")
+print(region_period.tail(5)[["Pre-COVID (May19-Mar20)", "Post-COVID (Apr-Jun 2020)", "increase"]])
+
+print(f"\nAll charts saved to ./{CHART_DIR}/")

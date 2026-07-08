@@ -1,0 +1,30 @@
+[Running] python -u "c:\Users\aryac\OneDrive\Desktop\Codealpha_tasks\Task2\unemployment analysis"
+Cleaned dataset: 740 rows, 28 regions, 2019-05-31 to 2020-06-30
+
+National avg unemployment � Pre-COVID:  9.62%
+National avg unemployment � Post-COVID: 20.14%
+Peak month: 2020-05-31 at 24.88%
+Correlation (Labour Participation vs Unemployment Rate): 0.0026
+
+Top 5 hardest-hit states/UTs (by increase, pre->post):
+Period      Pre-COVID (May19-Mar20)  Post-COVID (Apr-Jun 2020)   increase
+Region                                                                   
+Puducherry                 1.581364                  57.700000  56.118636
+Jharkhand                 13.954545                  44.896667  30.942121
+Tamil Nadu                 3.161364                  31.735000  28.573636
+Bihar                     13.990000                  36.988333  22.998333
+Karnataka                  3.272727                  19.155000  15.882273
+
+Bottom 5 least-affected/improved states/UTs:
+Period            Pre-COVID (May19-Mar20)  Post-COVID (Apr-Jun 2020)  increase
+Region                                                                        
+Sikkim                           7.440000                   6.792000 -0.648000
+Tripura                         28.976818                  26.053333 -2.923485
+Himachal Pradesh                19.396818                  15.400000 -3.996818
+Jammu & Kashmir                 16.989444                  11.383333 -5.606111
+Chandigarh                      16.789091                   7.220000 -9.569091
+
+All charts saved to ./charts/
+
+[Done] exited with code=0 in 2.272 seconds
+
