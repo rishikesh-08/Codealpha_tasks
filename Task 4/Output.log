@@ -1,0 +1,70 @@
+[Running] python -u "c:\Users\aryac\OneDrive\Desktop\Task4\advert.py"
+{
+  "n_rows": 200,
+  "n_missing": 0,
+  "n_duplicates": 0,
+  "outlier_counts": {
+    "TV": 0,
+    "Radio": 0,
+    "Newspaper": 2,
+    "Sales": 0
+  },
+  "correlation_with_sales": {
+    "TV": 0.7822244248616067,
+    "Radio": 0.5762225745710555,
+    "Newspaper": 0.22829902637616545,
+    "Total_Spend": 0.867712302701742
+  },
+  "cv_r2_linear": {
+    "mean": 0.8871063495438436,
+    "std": 0.04034052587780578,
+    "scores": [
+      0.8786519804831341,
+      0.9176321165614462,
+      0.9293303235799653,
+      0.8144390391722337,
+      0.8954782879224388
+    ]
+  },
+  "cv_r2_rf": {
+    "mean": 0.9697579565480497,
+    "std": 0.009398615043056054
+  },
+  "models": {
+    "Linear Regression": {
+      "R2": 0.899438024100912,
+      "MAE": 1.4607567168117606,
+      "RMSE": 1.7815996615334506,
+      "coefficients": {
+        "TV": 0.044729517468716326,
+        "Radio": 0.1891950542343766,
+        "Newspaper": 0.0027611143413671874
+      },
+      "intercept": 2.9790673381226274
+    },
+    "Random Forest": {
+      "R2": 0.9766889646812894,
+      "MAE": 0.6816894256819247,
+      "RMSE": 0.8577762229694191,
+      "feature_importance": {
+        "TV": 0.6286990327524971,
+        "Radio": 0.36142923520690023,
+        "Newspaper": 0.009871732040602661
+      }
+    },
+    "Polynomial Regression (deg 2)": {
+      "R2": 0.9869181490609603,
+      "MAE": 0.5261794444043778,
+      "RMSE": 0.6425809120553662
+    }
+  },
+  "scenarios": {
+    "baseline_avg_predicted_sales": 14.0191337448398,
+    "TV_+10pct_avg_sales_lift": 0.4539260935367384,
+    "Radio_+10pct_avg_sales_lift": 0.45914327954711354,
+    "Newspaper_+10pct_avg_sales_lift": 0.016949380319026375
+  }
+}
+
+[Done] exited with code=0 in 6.648 seconds
+
